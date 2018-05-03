@@ -1,4 +1,4 @@
-char MyChar;
+char Buff;
 bool SendVibration = false;
 int Counter;
 
@@ -10,7 +10,7 @@ void setup() {
 
 void loop() {
   
-  if (SendVibration == true) {
+  if (SendVibration) {
     Counter+=1;
     if (Counter > 10000) {
         SendVibration = false;
@@ -20,8 +20,8 @@ void loop() {
   }
   
   if (Serial.available() > 0) {
-    MyChar = Serial.read();
-    if (MyChar=='V') {
+    Buff = Serial.read();
+    if (Buff == 'V') {
       if (SendVibration == false) digitalWrite(3, HIGH);
       SendVibration = true;
       Counter = 0;
