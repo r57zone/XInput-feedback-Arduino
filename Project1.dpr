@@ -107,11 +107,6 @@ end;
 var
 CommPortDriver: TCommPortDriver;
 
-function DllMain(inst:LongWord; reason:DWORD; const reserved): boolean;
-begin
-  Result:=true;
-end;
-
 function XInputGetState(
     dwUserIndex: DWORD;      //Index of the gamer associated with the device
     out pState: TXInputState //Receives the current state
@@ -126,7 +121,7 @@ begin
 
   pState.dwPacketNumber:=GetTickCount;
 
-  if dwUserIndex=0 then Result:=ERROR_SUCCESS
+  if dwUserIndex = 0 then Result:=ERROR_SUCCESS
   else Result:=ERROR_DEVICE_NOT_CONNECTED;
 end;
 
@@ -138,7 +133,7 @@ begin
   if (pVibration.wLeftMotorSpeed > 0) and (pVibration.wRightMotorSpeed > 0) then
     CommPortDriver.SendString('V');
 
-  if dwUserIndex=0 then Result:=ERROR_SUCCESS
+  if dwUserIndex = 0 then Result:=ERROR_SUCCESS
   else Result:=ERROR_DEVICE_NOT_CONNECTED;
 end;
 
@@ -148,7 +143,7 @@ function XInputGetCapabilities(
     out pCapabilities: TXInputCapabilities  //Receives the capabilities
  ): DWORD; stdcall;
 begin
-  if dwUserIndex=0 then Result:=ERROR_SUCCESS
+  if dwUserIndex = 0 then Result:=ERROR_SUCCESS
   else Result:=ERROR_DEVICE_NOT_CONNECTED;
 end;
 
@@ -165,7 +160,7 @@ function XInputGetDSoundAudioDeviceGuids(
     out pDSoundCaptureGuid: TGUID //DSound device ID for capture
  ): DWORD; stdcall;
 begin
-  if dwUserIndex=0 then Result:=ERROR_SUCCESS
+  if dwUserIndex = 0 then Result:=ERROR_SUCCESS
   else Result:=ERROR_DEVICE_NOT_CONNECTED;
 end;
 
@@ -184,7 +179,7 @@ function XInputGetKeystroke(
     var pKeystroke: TXInputKeystroke  //Pointer to an XINPUT_KEYSTROKE structure that receives an input event.
  ): DWORD; stdcall;
 begin
-  if dwUserIndex=0 then Result:=ERROR_SUCCESS
+  if dwUserIndex = 0 then Result:=ERROR_SUCCESS
   else Result:=ERROR_DEVICE_NOT_CONNECTED;
 end;
 
@@ -193,7 +188,7 @@ function XInputGetStateEx(
     out pState: TXInputState
  ): DWORD; stdcall;
 begin
-  if dwUserIndex=0 then result:=ERROR_SUCCESS
+  if dwUserIndex = 0 then result:=ERROR_SUCCESS
   else result:=ERROR_DEVICE_NOT_CONNECTED;
 end;
 
@@ -203,7 +198,7 @@ function XInputWaitForGuideButton(
     const LPVOID
  ): DWORD; stdcall;
 begin
-  if dwUserIndex=0 then Result:=ERROR_SUCCESS
+  if dwUserIndex = 0 then Result:=ERROR_SUCCESS
   else Result:=ERROR_DEVICE_NOT_CONNECTED;
 end;
 
@@ -211,7 +206,7 @@ function XInputCancelGuideButtonWait(
     dwUserIndex: DWORD               
 ): DWORD; stdcall;
 begin
-  if dwUserIndex=0 then Result:=ERROR_SUCCESS
+  if dwUserIndex = 0 then Result:=ERROR_SUCCESS
   else Result:=ERROR_DEVICE_NOT_CONNECTED;
 end;
 
@@ -219,8 +214,27 @@ function XInputPowerOffController(
     dwUserIndex: DWORD
 ): DWORD; stdcall;
 begin
-  if dwUserIndex=0 then Result:=ERROR_SUCCESS
+  if dwUserIndex = 0 then Result:=ERROR_SUCCESS
   else Result:=ERROR_DEVICE_NOT_CONNECTED;
+end;
+
+function DllMain(inst:LongWord; reason:DWORD; const reserved): boolean;
+var
+  Ini: TIniFile;
+begin
+  case reason of
+    DLL_PROCESS_ATTACH:
+      begin
+        TCommPort.Create();
+        Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Vibration.ini');
+        CommPortDriver.PortName:='\\.\Com' + IntToStr(Ini.ReadInteger('Main', 'CommPort', 1));
+        Ini.Free;
+        CommPortDriver.Connect;
+      end;
+    DLL_PROCESS_DETACH: CommPortDriver.Free;
+  end;
+    
+  Result:=true;
 end;
 
 exports
@@ -244,12 +258,7 @@ begin
   inherited destroy;
 end;
 
-var
-  Ini: TIniFile;
 begin
-  TCommPort.Create();
-  Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Vibration.ini');
-  CommPortDriver.PortName:='\\.\Com' + IntToStr(Ini.ReadInteger('Main', 'CommPortName', 1));
-  Ini.Free;
-  CommPortDriver.Connect;
+  DllProc:=@DllMain;
+  DllProc(DLL_PROCESS_ATTACH);
 end.
